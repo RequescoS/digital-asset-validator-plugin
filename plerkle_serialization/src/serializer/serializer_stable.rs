@@ -5,9 +5,9 @@ use crate::solana_geyser_plugin_interface_shims::{
 use crate::{
     AccountInfo, AccountInfoArgs, BlockInfo, BlockInfoArgs, CompiledInnerInstruction,
     CompiledInnerInstructionArgs, CompiledInnerInstructions, CompiledInnerInstructionsArgs,
-    CompiledInstruction, CompiledInstructionArgs,
-    Pubkey as FBPubkey, Pubkey, SlotStatusInfo, SlotStatusInfoArgs, Status as FBSlotStatus,
-    TransactionInfo, TransactionInfoArgs, TransactionVersion,
+    CompiledInstruction, CompiledInstructionArgs, Pubkey as FBPubkey, Pubkey, SlotStatusInfo,
+    SlotStatusInfoArgs, Status as FBSlotStatus, TransactionInfo, TransactionInfoArgs,
+    TransactionVersion,
 };
 use chrono::Utc;
 use flatbuffers::{FlatBufferBuilder, WIPOffset};

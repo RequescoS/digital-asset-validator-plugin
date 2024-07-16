@@ -11,9 +11,9 @@ use plerkle_messenger::{
     select_messenger, MessengerConfig, ACCOUNT_STREAM, BLOCK_STREAM, SLOT_STREAM,
     TRANSACTION_STREAM,
 };
-use plerkle_serialization::{serializer::{
+use plerkle_serialization::serializer::{
     serialize_account, serialize_block, serialize_transaction,
-}};
+};
 use serde::Deserialize;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 
@@ -103,31 +103,20 @@ pub(crate) struct Plerkle<'a> {
 }
 
 trait PlerklePrivateMethods {
-    fn get_plerkle_block_info<'b>(&self, blockinfo: ReplicaBlockInfoVersions<'b>) -> plerkle_serialization::solana_geyser_plugin_interface_shims::ReplicaBlockInfoV2<'b>;
+    fn get_plerkle_block_info<'b>(
+        &self,
+        blockinfo: ReplicaBlockInfoVersions<'b>,
+    ) -> plerkle_serialization::solana_geyser_plugin_interface_shims::ReplicaBlockInfoV2<'b>;
 }
 
 impl<'a> PlerklePrivateMethods for Plerkle<'a> {
-    fn get_plerkle_block_info<'b>(&self, blockinfo: ReplicaBlockInfoVersions<'b>) -> plerkle_serialization::solana_geyser_plugin_interface_shims::ReplicaBlockInfoV2<'b> {
+    fn get_plerkle_block_info<'b>(
+        &self,
+        blockinfo: ReplicaBlockInfoVersions<'b>,
+    ) -> plerkle_serialization::solana_geyser_plugin_interface_shims::ReplicaBlockInfoV2<'b> {
         match blockinfo {
-            ReplicaBlockInfoVersions::V0_0_1(block_info) => plerkle_serialization::solana_geyser_plugin_interface_shims::ReplicaBlockInfoV2 {
-                     parent_slot: 0,
-                     parent_blockhash: "",
-                     slot: block_info.slot,
-                     blockhash: block_info.blockhash,
-                     block_time: block_info.block_time,
-                     block_height: block_info.block_height,
-                     executed_transaction_count: 0,
-                },
-            ReplicaBlockInfoVersions::V0_0_2(block_info) => plerkle_serialization::solana_geyser_plugin_interface_shims::ReplicaBlockInfoV2 {
-                     parent_slot: 0,
-                     parent_blockhash: "",
-                     slot: block_info.slot,
-                     blockhash: block_info.blockhash,
-                     block_time: block_info.block_time,
-                     block_height: block_info.block_height,
-                     executed_transaction_count: 0,
-                },
-            ReplicaBlockInfoVersions::V0_0_3(block_info) => plerkle_serialization::solana_geyser_plugin_interface_shims::ReplicaBlockInfoV2 {
+            ReplicaBlockInfoVersions::V0_0_1(block_info) => {
+                plerkle_serialization::solana_geyser_plugin_interface_shims::ReplicaBlockInfoV2 {
                     parent_slot: 0,
                     parent_blockhash: "",
                     slot: block_info.slot,
@@ -136,6 +125,29 @@ impl<'a> PlerklePrivateMethods for Plerkle<'a> {
                     block_height: block_info.block_height,
                     executed_transaction_count: 0,
                 }
+            }
+            ReplicaBlockInfoVersions::V0_0_2(block_info) => {
+                plerkle_serialization::solana_geyser_plugin_interface_shims::ReplicaBlockInfoV2 {
+                    parent_slot: 0,
+                    parent_blockhash: "",
+                    slot: block_info.slot,
+                    blockhash: block_info.blockhash,
+                    block_time: block_info.block_time,
+                    block_height: block_info.block_height,
+                    executed_transaction_count: 0,
+                }
+            }
+            ReplicaBlockInfoVersions::V0_0_3(block_info) => {
+                plerkle_serialization::solana_geyser_plugin_interface_shims::ReplicaBlockInfoV2 {
+                    parent_slot: 0,
+                    parent_blockhash: "",
+                    slot: block_info.slot,
+                    blockhash: block_info.blockhash,
+                    block_time: block_info.block_time,
+                    block_height: block_info.block_height,
+                    executed_transaction_count: 0,
+                }
+            }
         }
     }
 }
@@ -313,7 +325,7 @@ impl GeyserPlugin for Plerkle<'static> {
         "Plerkle"
     }
 
-    fn on_load(&mut self, config_file: &str) -> Result<()> {
+    fn on_load(&mut self, config_file: &str, _is_reload: bool) -> Result<()> {
         solana_logger::setup_with_default("info");
 
         // Read in config file.
@@ -423,7 +435,7 @@ impl GeyserPlugin for Plerkle<'static> {
                 }));
             }
 
-            tasks.push(tokio::spawn(async move { 
+            tasks.push(tokio::spawn(async move {
                 let mut last_idx = 0;
                 while let Some(data) = main_receiver.recv().await {
                     let seen = data.seen_at.elapsed().as_millis() as u64;
@@ -448,7 +460,7 @@ impl GeyserPlugin for Plerkle<'static> {
                     }
                     last_idx = (last_idx + 1) % worker_senders.len();
 
-                } 
+                }
             }));
 
         });
@@ -589,7 +601,9 @@ impl GeyserPlugin for Plerkle<'static> {
     ) -> solana_geyser_plugin_interface::geyser_plugin_interface::Result<()> {
         info!("Slot status update: {:?} {:?}", slot, status);
         if status == SlotStatus::Processed && parent.is_some() {
-            let mut seen = self.slots_seen.lock()
+            let mut seen = self
+                .slots_seen
+                .lock()
                 .map_err(|e| PlerkleError::SlotsSeenLockError { msg: e.to_string() })?;
             seen.insert(parent.unwrap())
         }
@@ -617,7 +631,9 @@ impl GeyserPlugin for Plerkle<'static> {
                 }
             }
 
-            let mut seen: std::sync::MutexGuard<'_, SlotStore> = self.slots_seen.lock()
+            let mut seen: std::sync::MutexGuard<'_, SlotStore> = self
+                .slots_seen
+                .lock()
                 .map_err(|e| PlerkleError::SlotsSeenLockError { msg: e.to_string() })?;
             let slots_to_purge = seen.needs_purge(slot);
             if let Some(purgable) = slots_to_purge {
@@ -724,10 +740,7 @@ impl GeyserPlugin for Plerkle<'static> {
         Ok(())
     }
 
-    fn notify_block_metadata(
-        &self,
-        blockinfo: ReplicaBlockInfoVersions,
-    ) -> Result<()> {
+    fn notify_block_metadata(&self, blockinfo: ReplicaBlockInfoVersions) -> Result<()> {
         let seen = Instant::now();
         let plerkle_blockinfo = self.get_plerkle_block_info(blockinfo);
 
